@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+	<head/>
+		<title> Luxeweek background </title>
+		<!--<script type="text/javascript" src="/js/jquery.min.js"></script>-->
+	</head>
+	<body style='background-color:black'>
+		<canvas id='anim_bg' width='1000px' height='700px'></canvas> 
+		<script>
+//var $canvas =  $('#anim_bg')
+//$('body, html, #anim_bg').width( $(window).width())
+//$('body, html, #anim_bg').height($(window).height())
+var canvas = document.getElementById('anim_bg');
+var context = canvas.getContext('2d')
+
+
+function draw_new_circle() {
+	var radius = 70;
+	var rnd = Math.random()
+	colorIn = " hsla(" + Math.round(360 * rnd) + ", 100%, 50%, 0.5)";
+	colorOut = " hsla(" + Math.round(360 * rnd) + ", 100%, 50%, 0.7)";
+
+	xpos = 1000 * Math.random(); ypos =600*Math.random(), rad = 50+40*(Math.random() - .5);
+
+	var grd = context.createRadialGradient(xpos, ypos, 0, xpos, ypos, rad);
+	grd.addColorStop(0, this.colorIn); 
+	grd.addColorStop(0.66, this.colorOut);
+	grd.addColorStop(0.77, "rgba(1,1,1,1)");
+	grd.addColorStop(1, "rgba(0,0,0,0)"); 	
+	context.fillStyle = grd;
+
+	context.beginPath();
+	context.arc(xpos, ypos, rad, 0, 2 * Math.PI, false);
+	context.fill();
+	context.lineWidth = 5;
+
+}
+//for (var i=0; i<1000; i++) draw_new_circle();
+//setInterval(draw_new_circle, 500);
+
+function Vertix(x, y, color) {
+	this.x = x;
+	this.y = y;
+	this.color = color;
+}
+
+Vertix.prototype.generate = function(width, height){
+	this.x = Math.random()*3*width - 1*width;
+	this.y = Math.random()*3*height - 1*height;
+	this.color = Math.round(Math.random()*360);
+}
+
+Vertix.prototype.draw = function(rad){
+	var colorIn = "hsla(" + this.color + ", 100%, 50%, 0.5)";
+	var colorOut = "hsla(" + this.color + ", 100%, 50%, 0.1)";
+
+//	console.log(this.x);
+	
+	var grd = context.createRadialGradient(this.x, this.y, 0, this.x, this.y, rad);
+	grd.addColorStop(0., colorIn); 
+	grd.addColorStop(1., colorOut);
+	context.fillStyle = grd;
+
+	context.beginPath();
+	context.arc(this.x, this.y, rad, 0, 2 * Math.PI, false);
+	context.fill();
+	context.lineWidth = 5;
+}
+
+Vertix.prototype.distance = function (ver) {
+	return Math.sqrt(Math.pow(ver.x - this.x, 2)+ Math.pow(ver.y-this.y, 2));
+}
+
+Vertix.prototype.denominator = function (vertixes, num) {
+	this.denom = 1.;
+	for (var i = 0; i < pointsNumber; i++){
+		if (i == num) continue;
+		this.denom /= this.distance(vertixes[i]);
+	}
+	console.log ('denom: '+this.denom);
+}
+
+draw_picture();
+
+function draw_picture(){
+	pointsNumber = 3;
+	vertixes = new Array();
+	var radius = 7;
+	var x_pix = 300, y_pix = 200;
+	var height = canvas.height, width = canvas.width;
+	var interpolation = polynomial_interp;
+
+	for (var i = 0; i<pointsNumber; i++) {
+		var a = new Vertix();
+		a.generate(width, height);
+		vertixes.push(a);
+		console.log('ver: x: '+a.x+'y: '+a.y+'col: '+a.color);
+
+	}
+
+	for (var i = 0; i<pointsNumber; i++) {
+		vertixes[i].denominator(vertixes, i);
+	}
+
+	var image = context.createImageData(width, height);
+	var i = 0;
+	for (var y = 0; y < height; y++)
+		for (var x = 0 ; x < width; x++){
+
+			var pix = new Vertix(x, y, 0);
+			var pix_col = (interpolation(pix)%1000)/1000.;
+
+			var rgb = hslToRgb(pix_col, 1. , .5);
+			image.data[i + 0] = rgb[0];
+			image.data[i + 1] = rgb[1];
+			image.data[i + 2] = rgb[2];
+			image.data[i + 3] = 255;
+			i+=4;
+
+			if (!(i%50000)) 
+					console.log('pix_color: '+pix_col);
+			
+		}
+	context.clearRect(0, 0, canvas.width, canvas.height);
+	context.putImageData(image, 0, 0);
+
+	return false;
+	
+
+}
+
+function polynomial_interp(pix){
+	W = 1.;
+	var pix_col = 0;
+	vertixes.forEach(function(ver){
+		W *= ver.distance(pix);
+	});
+
+	for (var i =0; i < pointsNumber; i++){
+		ver = vertixes[i];
+		coef = W*ver.denom/ver.distance(pix);
+		pix_col += ver.color/coef;
+	}
+	return pix_col;
+
+}
+
+function hslToRgb(h, s, l){
+    var r, g, b;
+
+    if(s == 0){
+        r = g = b = l; // achromatic
+    }else{
+        function hue2rgb(p, q, t){
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return [r * 255, g * 255, b * 255];
+}
+
+
+
+
+
+		</script>
+		<a style="color:white; cursor:pointer; float:right;" onclick="draw_picture();">Перерисовать</a>
+	</body>
+</html>
