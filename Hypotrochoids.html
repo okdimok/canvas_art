@@ -74,7 +74,7 @@ window.onload = function () {
 	W = d.width = 1366;//w.outerWidth;
 	H = d.height = 743;//w.outerHeight;
 	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
-	c.globalCompositeOperation = "lighter"; // switch to additive color application
+	//c.globalCompositeOperation = "lighter"; // switch to additive color application
 	c.lineWidth = .4;
 	c.lineCap = "round";
 	var bool = 0, 
@@ -107,7 +107,7 @@ window.onload = function () {
 		}
 		U = U0;
 
-		lightenCanvas();
+		//lightenCanvas();
 		hepto.draw();
 	}
 	j.onkeypress = function(e) {
@@ -142,7 +142,7 @@ window.onresize = function(){
 	//W = d.width = w.innerWidth;
 	//H = d.height = w.innerHeight;
 	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
-	c.globalCompositeOperation = "lighter"; // switch to additive color application
+	//c.globalCompositeOperation = "lighter"; // switch to additive color application
 	c.lineWidth = .2;
 	c.lineCap = "round";
 
