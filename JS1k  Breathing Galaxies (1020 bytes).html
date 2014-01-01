@@ -4,29 +4,87 @@
 <title>JS1k: Breathing Galaxies (1020 bytes)</title>
 <script type="text/javascript">
 
-/*
-	Breathing Galaxies (1020 bytes)
-	--------------------------------
-	window.onload=function(){C=Math.cos;S=Math.sin;U=0;w=window;j=document;d=j.getElementById("c");c=d.getContext("2d");W=d.width=w.innerWidth;H=d.height=w.innerHeight;c.fillRect(0,0,W,H);c.globalCompositeOperation="lighter";c.lineWidth=0.2;c.lineCap="miter";var e=0,h=0;d.onmousemove=function(k){if(window.T){if(D==9){D=Math.random()*15;f(1)}clearTimeout(T)}X=k.pageX;Y=k.pageY;a=0;b=0;A=X,B=Y;R=(k.pageX/W*999>>0)/999;r=(k.pageY/H*999>>0)/999;U=k.pageX/H*360>>0;D=9;g=360*Math.PI/180;T=setInterval(f=function(l){c.save();c.globalCompositeOperation="source-over";if(!l){c.fillStyle="rgba(0,0,0,0.01)";c.fillRect(0,0,W,H)}c.restore();i=25;while(i--){c.beginPath();if(D>450||e){if(!e){e=1}if(D<0.1){e=0}h-=g;D-=0.1}if(!e){h+=g;D+=0.1}q=(R/r-1)*h;x=(R-r)*C(h)+D*C(q)+(A+(X-A)*(i/25))+(r-R);y=(R-r)*S(h)-D*S(q)+(B+(Y-B)*(i/25));if(a){c.moveTo(a,b);c.lineTo(x,y)}c.strokeStyle="hsla("+(U%360)+",100%,50%,0.75)";c.stroke();a=x;b=y}U-=0.5;A=X;B=Y},16)};j.onkeydown=function(k){a=b=0;R+=0.05};d.onmousemove({pageX:300,pageY:290})};
-
-*/
+var gcd = function(a, b) {
+    if ( ! b) {
+        return a;
+    }
+    return gcd(b, a % b);
+};
 
 window.onload = function () {
 	C = Math.cos; // cache Math objects
 	S = Math.sin;
-	U = 0;
+	t = 0;
 	w = window;
 	j = document;
+	body = j.getElementsByTagName('body')[0];
 	d = j.getElementById("c");
 	c = d.getContext("2d");
-	W = d.width = w.innerWidth;
-	H = d.height = w.innerHeight;
+	W = d.width = 1366;//w.outerWidth;
+	H = d.height = 743;//w.outerHeight;
 	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
 	c.globalCompositeOperation = "lighter"; // switch to additive color application
-	c.lineWidth = .2;
+	c.lineWidth = .4;
 	c.lineCap = "round";
 	var bool = 0, 
 		t = 0; // theta
+
+	lightenCanvas = function(){
+		c.save();
+		c.globalCompositeOperation = "source-over"; // switch to additive color application
+		c.fillStyle = "rgba(0,0,0,0.00)";
+		c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
+		c.restore();
+	}
+
+
+	drawHeptocordoid = function (X, Y, R, r, D, Dmax, t0, U, D_incr, U_incr, g) {
+		//var t = t0;
+		var a, b = 0;
+		if (D_incr === undefined) D_incr = 0;
+		if (U_incr === undefined) U_incr = 0.05;
+		if (g === undefined) g = Math.PI /180;
+		var i = N = 2 * Math.PI * r * R / gcd(r, R)/ g;
+		while (i > 10000) i = N = i >> 1;
+		console.log(r, R, i);
+
+		while(D_incr || (i-- > 0)) {
+			c.beginPath();
+			if(D > Dmax) { // decrease diameter
+				return;
+			}
+			t += g; // increase theta
+			D += D_incr; // increase size
+			U += U_incr/N;
+		
+			q = (R / r - 1) * t; // create hypotrochoid from current mouse position, and setup variables (see: http://en.wikipedia.org/wiki/Hypotrochoid)
+			x = (R - r) * C(t) + D * C(q) + X;//(A + (X - A) * (i / N)) + (r - R); // center on xy coords
+			y = (R - r) * S(t) - D * S(q) + Y;//(B + (Y - B) * (i / N));
+			if (a) { // draw once two points are set
+				c.moveTo(a, b);
+				c.lineTo(x, y)
+			}
+			c.strokeStyle = "hsla(" + (U % 360) + ",100%,50%,1)"; // draw rainbow hypotrochoid
+			c.stroke();
+
+			a = x; // set previous coord.x
+			b = y; // set previous coord.y
+		}
+		U -= 0.5; // increment hue
+		A = X; // set original coord.x
+		B = Y; // set original coord.y
+	}
+
+	drawHeptocordoids = function (n, X, Y, R, r, D, Dmax, t0, U, D_incr, U_incr, g) {
+		if (n === undefined) n = 4;
+		if (D_incr === undefined) D_incr = 0;
+		if (U_incr === undefined) U_incr = 100;
+		if (g === undefined) g = Math.PI /180;
+
+		var i = n;
+		while (i--) drawHeptocordoid (X, Y, R, r, D, Dmax, (t0 + i * 2 * Math.PI * r * R / gcd(r, R)/ g / n), U, D_incr, U_incr, g);
+	}
+
 	d.onclick = function (e) {
 		if(window.T) {
 			if(D==9) { D=Math.random()*15; f(1); }
@@ -38,59 +96,54 @@ window.onload = function () {
 		b=0; // previous coord.y 
 		A = X, // original coord.x
 		B = Y; // original coord.y
-		R = (e.pageX/W * 99999>>0)/999;
-		r = (e.pageY/H * 99999>>0)/999;
-		U= e.pageX/H * 360 >>0;
-		D=20;
-		g = Math.PI / 180;
-		T = setInterval(f = function (e) { // start looping spectrum
-			c.save();
-			c.globalCompositeOperation = "source-over"; // switch to additive color application
-			if(e!=1) {
-				c.fillStyle = "rgba(0,0,0,0.00)";
-				c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
-			}
-			c.restore();
-			var N = 360 * 10;
-			i = N; while(i --) {
-				c.beginPath();
-				if(D > 450 || bool) { // decrease diameter
-					if(!bool) { // has hit maximum
-						bool = 1;
-						clearTimeout(T);
-					}
-					if(D < 0.1) { // has hit minimum
-						bool = 0;
-					}
-					t -= g; // decrease theta
-					D -= 0.1; // decrease size
-				}
-				if(!bool) {
-					t += g; // increase theta
-					D += 0.05; // increase size
-					U += 0.05
-				}
-				q = (R / r - 1) * t; // create hypotrochoid from current mouse position, and setup variables (see: http://en.wikipedia.org/wiki/Hypotrochoid)
-				x = (R - r) * C(t) + D * C(q) + (A + (X - A) * (i / N)) + (r - R); // center on xy coords
-				y = (R - r) * S(t) - D * S(q) + (B + (Y - B) * (i / N));
-				if (a) { // draw once two points are set
-					c.moveTo(a, b);
-					c.lineTo(x, y)
-				}
-				c.strokeStyle = "hsla(" + (U % 360) + ",100%,50%,1)"; // draw rainbow hypotrochoid
-				c.stroke();
-				a = x; // set previous coord.x
-				b = y; // set previous coord.y
-			}
-			U -= 0.5; // increment hue
-			A = X; // set original coord.x
-			B = Y; // set original coord.y
-			clearTimeout(T);
+		if (!e.previous){
+			R = (Math.random()*99) >> 0;//(e.pageX/W * 99999>>0)/999;
+			r = (R * (Math.random()*30 >> 0)/(Math.random()*30) >> 0);//(e.pageY/H * 99999>>0)/999;
+			D= R/2 + Math.random() *100;
+			U0 = U = Math.random()*360;
+			Dmax = 500 + Math.random() *300;
+			t = 0;
+		}
+		U = U0;
 
-		}, 16);
+		lightenCanvas();
+		drawHeptocordoids(6 ,X, Y, R, r, D, Dmax, t, U, 0, 100);
 	}
-	j.onkeydown = function(e) { a=b=0; R += 0.05; D+=10; }
-	//d.onclick({pageX:300, pageY:290})
+	j.onkeypress = function(e) {
+		var ch = String.fromCharCode(e.which), shift = e.shiftKey;
+		if (!shift) ch = ch.toLowerCase();
+		switch (ch) {
+			case 'q':
+				return d.onclick({pageX:X, pageY:Y, previous:true});
+			case 'e':
+				var prev_pic = body.getElementsByTagName('a');
+				prev_pic = prev_pic[prev_pic.length - 1];
+				if (prev_pic.download) prev_pic.remove();
+				var image = j.createElement('a');
+				image.style.display = 'none';
+				var date = new Date().toISOString().replace("T", "_").replace("Z", "");
+				image.download = "pic-"+date+".png";
+				image.href = d.toDataURL("image/png");
+				body.appendChild( image );
+				image.click();
+				//window.open(d.toDataURL("image/png").replace("image/png", "image/octet-stream"));
+				return;
+		}
+		a=b=0; R += 0.05; D+=10; 
+	}
+	d.onclick({pageX:W/2, pageY:H/2})
+}
+
+window.onresize = function(){
+	
+	//W = d.width = w.innerWidth;
+	//H = d.height = w.innerHeight;
+	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
+	c.globalCompositeOperation = "lighter"; // switch to additive color application
+	c.lineWidth = .2;
+	c.lineCap = "round";
+
+
 }
 
 </script>
