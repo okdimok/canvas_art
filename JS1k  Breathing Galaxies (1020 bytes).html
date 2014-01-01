@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- saved from url=(0048)http://mudcu.be/labs/JS1k/BreathingGalaxies.html -->
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>JS1k: Breathing Galaxies (1020 bytes)</title>
+<title>Some canvas desktop BG</title>
 <script type="text/javascript">
 
 var gcd = function(a, b) {
@@ -11,10 +11,61 @@ var gcd = function(a, b) {
     return gcd(b, a % b);
 };
 
+
+function Heptocordoid (X, Y, R, r, D, t0, U, U_incr, g) {
+	this.X = X;
+	this.Y = Y;
+	this.R = R;
+	this.r = r;
+	this.D = D;
+	this.t = this.t0 = t0;
+	this.U0 = this.U = U;
+
+	var a, b = 0;
+	if (U_incr === undefined) U_incr = 0.05;
+	if (g === undefined) g = Math.PI /180;
+	this.g = g;
+
+	this.U_incr = U_incr;
+	
+}
+
+Heptocordoid.prototype.getPoint = function(theta){
+	q = (this.R / this.r - 1) * this.t; //(see: http://en.wikipedia.org/wiki/Hypotrochoid)
+	x = (this.R - this.r) * C(this.t) + D * C(q) + this.X;
+	y = (this.R - this.r) * S(this.t) - D * S(q) + this.Y;
+	return [x, y];	
+}
+
+Heptocordoid.prototype.draw = function(){
+	var i = N = 2 * Math.PI * this.r * this.R / gcd(this.r, this.R)/ this.g;
+	while (i > 10000) i = N = i >> 1;
+	console.log(this.r, this.R, i, this.g, this.U);
+	var point = prev_point = null; 
+
+	while(i-- > 0) {
+		//if ( (i%100)<1) console.log(prev_point);
+		this.t += this.g; // increase theta
+		this.U += this.U_incr/N;
+		
+		point = this.getPoint();
+		if (prev_point){
+			c.beginPath();
+			c.moveTo.apply(c, prev_point);
+			c.lineTo.apply(c, point);
+			c.strokeStyle = "hsla(" + (this.U % 360) + ",100%,50%,1)"; 
+			c.stroke();
+		}
+		prev_point = point;
+	}
+}
+
+
+
+
 window.onload = function () {
 	C = Math.cos; // cache Math objects
 	S = Math.sin;
-	t = 0;
 	w = window;
 	j = document;
 	body = j.getElementsByTagName('body')[0];
@@ -27,7 +78,7 @@ window.onload = function () {
 	c.lineWidth = .4;
 	c.lineCap = "round";
 	var bool = 0, 
-		t = 0; // theta
+	t = 0; // theta
 
 	lightenCanvas = function(){
 		c.save();
@@ -37,88 +88,41 @@ window.onload = function () {
 		c.restore();
 	}
 
-
-	drawHeptocordoid = function (X, Y, R, r, D, Dmax, t0, U, D_incr, U_incr, g) {
-		//var t = t0;
-		var a, b = 0;
-		if (D_incr === undefined) D_incr = 0;
-		if (U_incr === undefined) U_incr = 0.05;
-		if (g === undefined) g = Math.PI /180;
-		var i = N = 2 * Math.PI * r * R / gcd(r, R)/ g;
-		while (i > 10000) i = N = i >> 1;
-		console.log(r, R, i);
-
-		while(D_incr || (i-- > 0)) {
-			c.beginPath();
-			if(D > Dmax) { // decrease diameter
-				return;
-			}
-			t += g; // increase theta
-			D += D_incr; // increase size
-			U += U_incr/N;
-		
-			q = (R / r - 1) * t; // create hypotrochoid from current mouse position, and setup variables (see: http://en.wikipedia.org/wiki/Hypotrochoid)
-			x = (R - r) * C(t) + D * C(q) + X;//(A + (X - A) * (i / N)) + (r - R); // center on xy coords
-			y = (R - r) * S(t) - D * S(q) + Y;//(B + (Y - B) * (i / N));
-			if (a) { // draw once two points are set
-				c.moveTo(a, b);
-				c.lineTo(x, y)
-			}
-			c.strokeStyle = "hsla(" + (U % 360) + ",100%,50%,1)"; // draw rainbow hypotrochoid
-			c.stroke();
-
-			a = x; // set previous coord.x
-			b = y; // set previous coord.y
-		}
-		U -= 0.5; // increment hue
-		A = X; // set original coord.x
-		B = Y; // set original coord.y
+	rand_int = function(n){
+		return Math.random()* n >> 0;
 	}
 
-	drawHeptocordoids = function (n, X, Y, R, r, D, Dmax, t0, U, D_incr, U_incr, g) {
-		if (n === undefined) n = 4;
-		if (D_incr === undefined) D_incr = 0;
-		if (U_incr === undefined) U_incr = 100;
-		if (g === undefined) g = Math.PI /180;
 
-		var i = n;
-		while (i--) drawHeptocordoid (X, Y, R, r, D, Dmax, (t0 + i * 2 * Math.PI * r * R / gcd(r, R)/ g / n), U, D_incr, U_incr, g);
-	}
 
 	d.onclick = function (e) {
-		if(window.T) {
-			if(D==9) { D=Math.random()*15; f(1); }
-			clearTimeout(T);
-		}
-		X = e.pageX; // grab mouse pixel coords
+		X = e.pageX; 
 		Y = e.pageY;
-		a=0; // previous coord.x
-		b=0; // previous coord.y 
-		A = X, // original coord.x
-		B = Y; // original coord.y
 		if (!e.previous){
-			R = (Math.random()*99) >> 0;//(e.pageX/W * 99999>>0)/999;
-			r = (R * (Math.random()*30 >> 0)/(Math.random()*30) >> 0);//(e.pageY/H * 99999>>0)/999;
-			D= R/2 + Math.random() *100;
-			U0 = U = Math.random()*360;
-			Dmax = 500 + Math.random() *300;
+			R = rand_int(100);//(e.pageX/W * 99999>>0)/999;
+			r = (R * (rand_int(30)+10) /(rand_int(30)+10) >> 0);//(e.pageY/H * 99999>>0)/999;
+			D= R/2 + Math.random() *50;
+			U0 = U = (X + Y)/3;
 			t = 0;
+			hepto = new Heptocordoid(X, Y, R, r, D, 0, U); //(X, Y, R, r, D, t0, U, U_incr, g)
 		}
 		U = U0;
 
 		lightenCanvas();
-		drawHeptocordoids(6 ,X, Y, R, r, D, Dmax, t, U, 0, 100);
+		hepto.draw();
 	}
 	j.onkeypress = function(e) {
 		var ch = String.fromCharCode(e.which), shift = e.shiftKey;
 		if (!shift) ch = ch.toLowerCase();
 		switch (ch) {
+			case 'r':
+				var i = 100;
+				while(i--) d.onclick({pageX:rand_int(W), pageY:rand_int(H)});
+				return;
 			case 'q':
 				return d.onclick({pageX:X, pageY:Y, previous:true});
 			case 'e':
 				var prev_pic = body.getElementsByTagName('a');
-				prev_pic = prev_pic[prev_pic.length - 1];
-				if (prev_pic.download) prev_pic.remove();
+				if (prev_pic.length) prev_pic[0].remove();
 				var image = j.createElement('a');
 				image.style.display = 'none';
 				var date = new Date().toISOString().replace("T", "_").replace("Z", "");
@@ -126,7 +130,6 @@ window.onload = function () {
 				image.href = d.toDataURL("image/png");
 				body.appendChild( image );
 				image.click();
-				//window.open(d.toDataURL("image/png").replace("image/png", "image/octet-stream"));
 				return;
 		}
 		a=b=0; R += 0.05; D+=10; 
@@ -149,14 +152,9 @@ window.onresize = function(){
 </script>
 <style>
 body { margin: 0; overflow: hidden; }
-div { padding: 1px 5px; background: #333; position: absolute; z-index: 2; color: #555; font-family: arial; }
-a { color: #ccf }
-a:hover { color: #ff0000 }
 </style>
 </head>
 <body>
-<div><a href="http://mudcu.be/">mudcu.be</a> › <a href="http://mudcu.be/journal/">journal</a> › <a href="http://mudcube7.blogspot.com/2010/08/what-can-1kb-of-javascript-do.html">JS1k: What can 1kb of Javascript do?</a></div>
-<div id="text"></div>
 <canvas id="c" width="1366" height="681"></canvas>
 
 </body></html>
