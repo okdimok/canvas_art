@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Some canvas desktop BG</title>
+<script type="text/javascript">
+
+var gcd = function(a, b) {
+    if ( ! b) {
+        return a;
+    }
+    return gcd(b, a % b);
+};
+
+function rnd_sign(){
+	return rnd()> .5? 1 : -1;
+}
+
+
+
+
+function drawLines(N, N_colors, d_min, d_max, d_step, color_0, angle_0){
+	var N = N === undefined ? 10 : N
+	var	N_colors = N_colors === undefined ? 3 : N_colors;
+	var d_min = d_min === undefined ? 20 : d_min;
+	var d_max = d_max === undefined ? 300 : d_max;
+	var d_step = d_step === undefined ? 10 : d_step;
+	var color_0 = color_0 === undefined ? 0 : color_0;
+	var angle_0 = angle_0 === undefined ? 0 : angle_0;
+	//console.log('N: ' + N + '\tN_c: ' + N_colors);
+	for (var a = 0; a < N; a++) {
+		for (var d = d_min; d < d_max; d+=d_step) {
+			var angle_discrete = a/N;
+			var	angle = (angle_discrete + angle_0) * 2 * PI;
+			var	distance = d;
+			var	length = W;
+			//console.log('angle_discrete: ' + angle_discrete);
+
+
+			var x0 = W/2 + distance * C(angle) + length/2 * S(angle);
+			var	y0 = H/2 + distance * S(angle) - length/2 * C(angle);
+			var	x1 = W/2 + distance * C(angle) - length/2 * S(angle);
+			var	y1 = H/2 + distance * S(angle) + length/2 * C(angle);
+
+			var color = function(){
+				//var h =  (((a % N_colors) / N_colors * 360 + rnd_int(60) + color_0) % 360;
+				var h =  (((a % N_colors) / N_colors * 120 + rnd_sign() * rnd_int(15) + color_0 + 120) % 120 - 50) % 360;
+				//console.log('a: ' + a + '\tN_c: ' + N_colors + '\th: ' + h);
+				var s = .7 + .3*rnd();
+				var l = .4 + .6*rnd();
+				var a_c = .5 + .5*rnd();
+				return 'hsla('+h+', '+100*s+'%, ' + 100*l+'%, '+a_c+')';
+			};
+			c.lineWidth = .1;
+			c.lineCap = "round";
+			var gr = c.createLinearGradient(0, 0, 0, H); var N_cs;
+			var i_cs = N_cs = 3 + rnd_int(6);
+			while (i_cs--) {
+				gr.addColorStop(i_cs/N_cs, color());
+			}
+			gr.addColorStop(0,color());
+			c.strokeStyle = gr;
+			c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+		}
+	}
+
+}
+
+//function drawLineEx(){
+//	var x0 = rnd_int(W)+.5,
+//		x1 = x0 + rnd_sign()*pow(rnd(), 3)*150,
+//		y0 = rnd_sign()*pow(rnd(), 2)*300,
+//		y1 = H - rnd_sign()*pow(rnd(), 2)*300;
+//	var color = function(){
+//		var h = x0/10 %360 + rnd_int(60) + 0,
+//		s = .7 + .3*rnd()
+//		l = .4 + .6*rnd(),
+//		a = .5 + .5*rnd();
+//		return 'hsla('+h+', '+100*s+'%, ' + 100*l+'%, '+a+')';
+//	};
+//	c.lineWidth = .1;
+//	c.lineCap = "round";
+//	var gr = c.createLinearGradient(0, 0, 0, H);
+//	var i = N = rnd_int(6);
+//	while (i--) {
+//		gr.addColorStop(i/N, color());
+//	}
+//	gr.addColorStop(0,color());
+//	c.strokeStyle = gr;
+//	c.beginPath();
+//	c.moveTo(x0, y0);
+//	c.lineTo(x1, y1);
+//	c.stroke();
+//
+//}
+
+function pic1(){
+	var j = 5; while(j--) {var i = 5; while(i--) drawLines(17, 6, 0 , 1000, 30, j, .003*i)};
+	var j = 5; while(j--) {var i = 5; while(i--) drawLines(17, 6, 5 , 1000, 30, j, .003*i)};
+}
+
+function img_save(){
+	var j = document;
+	var prev_pic = body.getElementsByTagName('a');
+	if (prev_pic.length) prev_pic[0].remove();
+	var image = j.createElement('a');
+	image.style.display = 'none';
+	var date = new Date().toISOString().replace("T", "_").replace("Z", "");
+	image.download = "pic-"+date+".png";
+	image.href = d.toDataURL("image/png");
+	body.appendChild( image );
+	image.click();
+}
+
+
+
+window.onload = function () {
+	C = Math.cos; // cache Math objects
+	S = Math.sin;
+	PI = Math.PI;
+	rnd = Math.random;
+	pow = Math.pow;
+
+	w = window;
+	j = document;
+	body = j.getElementsByTagName('body')[0];
+	d = j.getElementById("c");
+	c = d.getContext("2d");
+	W = d.width = 3500;//w.outerWidth; 1366
+	H = d.height = 3500;//w.outerHeight; 768
+	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
+	//c.globalCompositeOperation = "lighter"; // switch to additive color application
+	c.lineWidth = .4;
+	c.lineCap = "round";
+	var bool = 0, 
+	t = 0; // theta
+
+	rnd_int = function(n){
+		return rnd()* n >> 0;
+	}
+	
+	pic1();
+	img_save();
+	
+	w.onkeypress = function(e) {
+		var ch = String.fromCharCode(e.which), shift = e.shiftKey;
+		if (!shift) ch = ch.toLowerCase();
+		switch (ch) {
+			case 'q': 
+				var i = 2; //pow(10, 4);
+				while (i--){
+					drawLines();
+				}
+				break;
+			case 'e':
+				img_save();
+				return;
+		}
+	}
+
+}
+//1366 681
+</script>
+<style>
+body { margin: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<canvas id="c" width="3500" height="3500"></canvas>
+
+</body></html>

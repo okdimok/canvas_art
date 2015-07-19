@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Some canvas desktop BG</title>
+<script type="text/javascript">
+
+var gcd = function(a, b) {
+    if ( ! b) {
+        return a;
+    }
+    return gcd(b, a % b);
+};
+
+function rnd_sign(){
+	return rnd()> .5? 1 : -1;
+}
+
+
+function drawLine(){
+	var x0 = rnd_int(W)+.5,
+		x1 = x0 + rnd_sign()*pow(rnd(), 3)*150,
+		y0 = rnd_sign()*pow(rnd(), 2)*300,
+		y1 = H - rnd_sign()*pow(rnd(), 2)*300;
+	var color = function(){
+		var h = x0/10 %360 + rnd_int(60) + 0,
+		s = .7 + .3*rnd()
+		l = .4 + .6*rnd(),
+		a = .5 + .5*rnd();
+		return 'hsla('+h+', '+100*s+'%, ' + 100*l+'%, '+a+')';
+	};
+	c.lineWidth = .1;
+	c.lineCap = "round";
+	var gr = c.createLinearGradient(0, 0, 0, H);
+	var i = N = rnd_int(6);
+	while (i--) {
+		gr.addColorStop(i/N, color());
+	}
+	gr.addColorStop(0,color());
+	c.strokeStyle = gr;
+	c.beginPath();
+	c.moveTo(x0, y0);
+	c.lineTo(x1, y1);
+	c.stroke();
+
+}
+
+
+
+window.onload = function () {
+	C = Math.cos; // cache Math objects
+	S = Math.sin;
+	rnd = Math.random;
+	pow = Math.pow;
+
+	w = window;
+	j = document;
+	body = j.getElementsByTagName('body')[0];
+	d = j.getElementById("c");
+	c = d.getContext("2d");
+	W = d.width = 1366;//w.outerWidth;
+	H = d.height = 768;//w.outerHeight;
+	c.fillRect(0, 0, W, H); // resize <canvas> and draw black rect (default)
+	//c.globalCompositeOperation = "lighter"; // switch to additive color application
+	c.lineWidth = .4;
+	c.lineCap = "round";
+	var bool = 0, 
+	t = 0; // theta
+
+	rnd_int = function(n){
+		return rnd()* n >> 0;
+	}
+	
+	var i = 30000;
+	while (i--){
+		drawLine();
+	}
+
+	j.onkeypress = function(e) {
+		var ch = String.fromCharCode(e.which), shift = e.shiftKey;
+		if (!shift) ch = ch.toLowerCase();
+		switch (ch) {
+			case 'q': 
+				var i = pow(10, 4);
+				while (i--){
+					drawLine();
+				}
+				break;
+			case 'e':
+				var prev_pic = body.getElementsByTagName('a');
+				if (prev_pic.length) prev_pic[0].remove();
+				var image = j.createElement('a');
+				image.style.display = 'none';
+				var date = new Date().toISOString().replace("T", "_").replace("Z", "");
+				image.download = "pic-"+date+".png";
+				image.href = d.toDataURL("image/png");
+				body.appendChild( image );
+				image.click();
+				return;
+		}
+	}
+
+}
+
+</script>
+<style>
+body { margin: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1366" height="681"></canvas>
+
+</body></html>
