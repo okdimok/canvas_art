@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head/>
+		<title> Luxeweek background </title>
+		<script type="text/javascript" src="/luxeweek/js/jquery.min.js"></script>
+	</head>
+	<body style='background-color:black'>
+		
+		<script>
+			var $win = $(window)
+			var xlen = $win.width(), ylen = $win.height()
+			var $canvas = $('<canvas id="anim_bg"/>').attr({width: xlen+'px', height: ylen+'px'})
+			$('body').append($canvas)
+			//$('body, html, #anim_bg').width( $(window).width())
+			//$('body, html, #anim_bg').height($(window).height())
+			var canvas = $canvas[0]
+			var context = canvas.getContext('2d')
+
+			
+			function draw_new_circle() {
+				var radius = 70;
+				var rnd = Math.random()
+				colorIn = " hsla(" + Math.round(360 * rnd) + ", 100%, 50%, 0.5)";
+				colorOut = " hsla(" + Math.round(360 * rnd) + ", 100%, 50%, 0.7)";
+
+				xpos = xlen * Math.random(); ypos =ylen*Math.random(), rad = 50+40*(Math.random() - .5);
+
+				var grd = context.createRadialGradient(xpos, ypos, 0, xpos, ypos, rad);
+				grd.addColorStop(0, this.colorIn); 
+				grd.addColorStop(0.66, this.colorOut);
+				grd.addColorStop(0.77, "rgba(1,1,1,1)");
+				grd.addColorStop(1, "rgba(0,0,0,0)"); 	
+				context.fillStyle = grd;
+
+				context.beginPath();
+				context.arc(xpos, ypos, rad, 0, 2 * Math.PI, false);
+				context.fill();
+				context.lineWidth = 5;
+
+			}
+			for (var i=0; i<1000; i++) draw_new_circle()
+			setInterval(draw_new_circle, 500)
+			
+
+
+		</script>
+	</body>
+</html>

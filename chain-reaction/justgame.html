@@ -1,0 +1,350 @@
+<html slick-uniqueid="3"><head>
+    <title>Canvas tutorial</title>
+		<link rel="stylesheet" type="text/css" href="styles.css">
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/mootools/1.4.5/mootools-yui-compressed.js"></script><link type="text/css" rel="stylesheet" href="data:text/css,">
+    <script type="text/javascript">
+      	var chainrxn = false;
+Ball = new Class({number: 0,xposition: 0,yposition: 0,downspeed: 0,rightspeed: 0,color: "#fff",radius: 0,expanding: 0,sizeChangeCount: 0,disabled: false,expanded: false,chainlevel: 0,isBonus: false,isDoNotExplode: false,bonus: 0,expandedLifeLength: 0,initialize: function(gameLevel, number, xposition, yposition, bonus) {
+        this.number = number;
+        this.gameLevel = gameLevel;
+        this.radius = this.gameLevel.ballSize;
+        this.expandedLifeLength = Math.random() * (this.gameLevel.maxExpandedLifeLength - this.gameLevel.minExpandedLifeLength) + this.gameLevel.minExpandedLifeLength;
+        if (xposition == null) {
+            this.xposition = (this.gameLevel.xmax - 2 * this.gameLevel.ballSize) * Math.random() + this.gameLevel.ballSize;
+            this.yposition = (this.gameLevel.ymax - 2 * this.gameLevel.ballSize) * Math.random() + this.gameLevel.ballSize;
+            var direction = Math.random() * 360;
+            var ballSpeed = Math.random() * (this.gameLevel.maxBallSpeed - this.gameLevel.minBallSpeed) + this.gameLevel.minBallSpeed;
+            this.downspeed = Math.cos(direction) * ballSpeed;
+            this.rightspeed = Math.sin(direction) * ballSpeed;
+            if (bonus == null) {
+                this.color = "rgb(" + Math.round(255 * Math.random()) + ", " + Math.round(255 * Math.random()) + ", " + Math.round(255 * Math.random()) + ")";
+            } else {
+                if (bonus == -1) {
+                    this.isDoNotExplode = true;
+                    this.color = "rgb(0,0,0)";
+                    this.bonus = this.gameLevel.badBonusStart;
+                } else {
+                    this.isBonus = true;
+                    this.color = "rgb(255,255,255)";
+                    this.bonus = this.gameLevel.goodBonusStart;
+                }
+            }
+        } else {
+            this.xposition = xposition;
+            this.yposition = yposition;
+            this.color = "rgb(150,150,150)";
+            this.startExpansion();
+        }
+        this.gameLevel.movingBalls.push(this);
+        this.draw();
+    },move: function() {
+        this.xposition += this.rightspeed;
+        this.yposition += this.downspeed;
+        this.draw();
+        var notHit = true;
+        this.gameLevel.expandedBalls.each(function(expandedBall) {
+            if (notHit && this.gameLevel.movingBalls[expandedBall].expanded == true && Math.sqrt(Math.pow(this.gameLevel.movingBalls[expandedBall].xposition - this.xposition, 2) + Math.pow(this.gameLevel.movingBalls[expandedBall].yposition - this.yposition, 2)) <= this.radius + this.gameLevel.movingBalls[expandedBall].radius) {
+                this.chainlevel = this.gameLevel.movingBalls[expandedBall].chainlevel + 1;
+                this.startExpansion();
+                if (this.gameLevel.totalBallsExpanded == this.gameLevel.numBalls) {
+                    this.gameLevel.doClearFieldBonus();
+                }
+                notHit = false;
+            }
+        }.bind(this))
+        if (notHit) {
+            if (this.xposition <= this.gameLevel.ballSize || this.xposition >= this.gameLevel.xmax - this.gameLevel.ballSize) {
+                this.rightspeed = -1 * this.rightspeed;
+            }
+            if (this.yposition <= this.gameLevel.ballSize || this.yposition >= this.gameLevel.ymax - this.gameLevel.ballSize) {
+                this.downspeed = -1 * this.downspeed;
+            }
+        }
+        if (this.isBonus && this.gameLevel.bonusCounter == 0) {
+            this.bonus = this.bonus * this.gameLevel.bonusFactor;
+        } else if (this.isDoNotExplode && this.gameLevel.doNotExplodeCounter == 0 && this.bonus <= this.gameLevel.maxDoNotExplodePoints) {
+            this.bonus += this.gameLevel.doNotExplodeIncrement;
+        }
+    },startExpansion: function() {
+        this.expanded = true;
+        this.gameLevel.expandedBalls.push(this.number);
+        this.gameLevel.totalBallsExpanded++;
+        if (this.isBonus || this.isDoNotExplode) {
+            var newPoints = this.bonus;
+        } else {
+            var newPoints = 100 * Math.pow(this.chainlevel, 3);
+        }
+        this.gameLevel.score += newPoints;
+        this.expandedBallSize = Math.random() * (this.gameLevel.maxExpandedBallSize - this.gameLevel.minExpandedBallSize) + this.gameLevel.minExpandedBallSize;
+        this.gameLevel.chainrxn.ballsExpandedEl.set("text", this.gameLevel.totalBallsExpanded + " balls expanded");
+        this.gameLevel.chainrxn.levelScoreEl.set("text", this.gameLevel.score + " level points");
+        this.gameLevel.chainrxn.totalScoreEl.set("text", this.gameLevel.score + this.gameLevel.chainrxn.score + " total points");
+        this.downspeed = 0;
+        this.rightspeed = 0;
+        this.expanding = 1;
+        if (this.gameLevel.totalBallsExpanded >= this.gameLevel.ballWinCount && document.body.getStyle("background") != "#333") {
+            this.gameLevel.showWinBG();
+        }
+        (function() {
+            this.expanding = -1;
+            this.sizeChangeCount = this.gameLevel.shrinkingIntervals;
+        }).delay(this.expandedLifeLength, this);
+        if (this.number == this.gameLevel.numBalls) {
+            return;
+        }
+        var coordinates = this.gameLevel.chainrxn.ballField.getCoordinates();
+        if (newPoints > 0) {
+            newPoints = "+" + newPoints;
+        }
+        var pointBox = new Element("div", {"text": newPoints}).inject(document.body);
+        pointBox.addClass("points");
+        pointBox.setStyles({"position": "absolute","top": (this.yposition + coordinates.top - this.gameLevel.pointPopupHeight / 2),"left": (this.xposition + coordinates.left - this.gameLevel.pointPopupWidth / 2)});
+        (function() {
+            pointBox.destroy();
+        }).delay(this.expandedLifeLength, this);
+    },expand: function() {
+        this.radius = Math.round(this.sizeChangeCount * (this.expandedBallSize - this.gameLevel.ballSize) / this.gameLevel.expandingIntervals + this.gameLevel.ballSize);
+        this.draw();
+        this.sizeChangeCount++;
+        if (this.gameLevel.expandingIntervals < this.sizeChangeCount) {
+            this.sizeChangeCount = 0;
+            this.expanding = 0;
+        }
+    },shrink: function() {
+        this.radius = Math.round(this.sizeChangeCount * (this.expandedBallSize) / this.gameLevel.shrinkingIntervals);
+        this.draw();
+        if (this.sizeChangeCount == 0) {
+            this.expanded = false;
+            this.expanding = 0;
+            this.gameLevel.expandedBalls.erase(this.number);
+            this.disabled = true;
+        }
+        this.sizeChangeCount--;
+    },maintain: function() {
+        if (this.expanding == 1) {
+            this.expand();
+        } else if (this.expanding == -1) {
+            this.shrink();
+        } else if (this.expanded == true) {
+            this.draw();
+        } else if (this.disabled == false) {
+            this.move();
+        }
+    },draw: function() {
+        this.gameLevel.canvas.beginPath();
+        this.gameLevel.canvas.fillStyle = this.color;
+        this.gameLevel.canvas.moveTo(this.xposition, this.yposition);
+        this.gameLevel.canvas.arc(this.xposition, this.yposition, this.radius, 0, Math.PI * 2, true);
+        this.gameLevel.canvas.closePath();
+        this.gameLevel.canvas.fill();
+    }})
+var StarterBall = new Class({element: false,xposition: false,yposition: false,gameLevel: false,initialize: function(gameLevel) {
+        this.gameLevel = gameLevel;
+        var coordinates = this.gameLevel.chainrxn.ballField.getCoordinates();
+        var dimensions = this.gameLevel.chainrxn.ballField.getSize();
+        this.element = new Element("div", {"id": "starterBall"}).inject(document.body);
+        this.xposition = coordinates.left + dimensions.x / 2;
+        this.yposition = coordinates.top + dimensions.y / 2;
+        this.move();
+    },checkBounds: function() {
+        var coordinates = this.gameLevel.chainrxn.ballField.getCoordinates();
+        var max_y = this.gameLevel.ymax + coordinates.top;
+        var max_x = this.gameLevel.xmax + coordinates.left;
+        if (this.xposition > max_x) {
+            this.xposition = max_x;
+        } else if (this.xposition < coordinates.left) {
+            this.xposition = coordinates.left;
+        }
+        if (this.yposition > max_y) {
+            this.yposition = max_y;
+        } else if (this.yposition < coordinates.top) {
+            this.yposition = coordinates.top;
+        }
+    },move: function() {
+        this.checkBounds();
+        this.element.setStyles({"top": this.yposition - this.gameLevel.starterBallSize,"left": this.xposition - this.gameLevel.starterBallSize})
+    },place: function(e) {
+        this.xposition = e.page.x;
+        this.yposition = e.page.y;
+        this.checkBounds();
+        var coordinates = this.gameLevel.chainrxn.ballField.getCoordinates();
+        new Ball(this.gameLevel, this.gameLevel.numBalls, this.xposition - coordinates.left, this.yposition - coordinates.top);
+        this.element.removeClass("starterBall");
+        this.element.destroy();
+        $$("body")[0].removeEvents("mousemove");
+        $$("body")[0].removeEvents("click");
+    }})
+var GameLevel = new Class({ballSize: 9,minExpandedBallSize: 20,maxExpandedBallSize: 60,minBallSpeed: 1,maxBallSpeed: 5,numBalls: 5,ballWinCount: 4,checkInterval: 30,bonusSpeed: 600,doNotExplodeSpeed: 30,expandDelay: 300,shrinkDelay: 150,minExpandedLifeLength: 1000,maxExpandedLifeLength: 6000,starterBallSize: 92,badBonusStart: -5000,doNotExplodeIncrement: 30,goodBonusStart: 100,bonusFactor: 2,maxDoNotExplodePoints: -100,clearFieldBonusMultiplier: 20000,xmax: 800,ymax: 600,pointPopupHeight: 20,pointPopupWidth: 50,clearFieldBoxHeight: 80,clearFieldBoxWidth: 300,chainrxn: false,ballField: false,expandedBalls: [],movingBalls: [],repeater: false,totalBallsExpanded: -1,score: 0,expandingIntervals: 0,canvas: false,bonusMaxCounter: 0,doNotExplodeMaxCounter: 0,bonusCounter: -1,doNotExplodeCounter: -1,numExpandedBallsBonusDone: false,initialize: function(ballDetails, chainrxn) {
+        this.chainrxn = chainrxn;
+        this.chainrxn.ballField.setStyle("background-color", "#333");
+        this.bonusMaxCounter = this.bonusSpeed / this.checkInterval;
+        this.doNotExplodeMaxCounter = this.doNotExplodeSpeed / this.checkInterval;
+        if (this.chainrxn.ballField.getContext) {
+            this.canvas = this.chainrxn.ballField.getContext("2d");
+        } else {
+            return alert("Your browser does not appear to support canvas, and our attempts to emulate it have failed.");
+        }
+        this.chainrxn.ballField.set({"height": this.ymax,"width": this.xmax});
+        this.canvas.globalAlpha = 0.7;
+        this.numBalls = ballDetails[1];
+        this.ballWinCount = ballDetails[0];
+        this.expandingIntervals = Math.round(this.expandDelay / this.checkInterval);
+        this.shrinkingIntervals = Math.round(this.shrinkDelay / this.checkInterval);
+        for (var i = 0; i < this.numBalls; i++) {
+            var chance = Math.round(Math.random() * this.numBalls * 2);
+            if (chance <= 1) {
+                new Ball(this, i, null, null, 1);
+            } else if (chance <= 2) {
+                new Ball(this, i, null, null, -1);
+            } else {
+                new Ball(this, i);
+            }
+        }
+        starterBall = new StarterBall(this);
+        this.repeater = function() {
+            this.canvas.clearRect(0, 0, this.xmax + this.ballSize, this.ymax + this.ballSize);
+            if ($chk(starterBall)) {
+                starterBall.move();
+            } else {
+                if (this.bonusCounter >= this.bonusMaxCounter) {
+                    this.bonusCounter = 0;
+                } else {
+                    this.bonusCounter++;
+                }
+                if (this.doNotExplodeCounter >= this.doNotExplodeMaxCounter) {
+                    this.doNotExplodeCounter = 0;
+                } else {
+                    this.doNotExplodeCounter++;
+                }
+                if (this.expandedBalls.length == 0) {
+                    if (this.totalBallsExpanded < this.ballWinCount) {
+                        this.doLoser();
+                    } else {
+                        this.doWinner();
+                    }
+                }
+            }
+            this.movingBalls.each(function(ball, index) {
+                ball.maintain();
+            }.bind(this))
+        }.bind(this).periodical(this.checkInterval)
+        $$("body")[0].addEvent("mousemove", function(e) {
+            starterBall.xposition = e.page.x;
+            starterBall.yposition = e.page.y;
+        }.bind(this))
+        $$("body")[0].addEvent("click", function(e) {
+            if (e.target.id != "notifierButton") {
+                starterBall.place(e);
+                starterBall = null;
+                this.chainrxn.levelNumberEl.set("text", "Level " + (this.chainrxn.levelNumber + 1));
+            }
+        }.bind(this))
+    },doClearFieldBonus: function() {
+        var bonus = this.clearFieldBonusMultiplier * (this.chainrxn.levelNumber + 1);
+        this.score += bonus;
+        this.chainrxn.ballField.set("morph", {"duration": 500});
+        this.chainrxn.ballField.morph({"background-color": "#FFFFFF"})
+        var coordinates = this.chainrxn.ballField.getCoordinates();
+        var clearFieldBox = new Element("div", {"id": "clearFieldBox"}).inject(document.body);
+        new Element("div", {"text": "Clear Field Bonus"}).inject(clearFieldBox);
+        new Element("div", {"text": bonus + " Points"}).inject(clearFieldBox);
+        clearFieldBox.setStyles({"top": (coordinates.top + (coordinates.height - this.clearFieldBoxHeight) / 2),"left": (coordinates.left + (coordinates.width - this.clearFieldBoxWidth) / 2)});
+    },showWinBG: function() {
+        this.chainrxn.ballField.set("morph", {"duration": 1000});
+        this.chainrxn.ballField.morph({"background-color": "#525252"})
+    },doLoser: function() {
+        this.repeater = $clear(this.repeater);
+        this.canvas.clearRect(0, 0, this.xmax + this.ballSize, this.ymax + this.ballSize);
+        this.chainrxn.repeatLevel();
+    },doWinner: function() {
+        this.repeater = $clear(this.repeater);
+        (function() {
+            var clearFieldBox = $('clearFieldBox');
+            if ($chk(clearFieldBox)) {
+                clearFieldBox.destroy();
+            }
+            this.canvas.clearRect(0, 0, this.xmax + this.ballSize, this.ymax + this.ballSize);
+            this.chainrxn.doNextLevel(this.score);
+        }).delay(this.expandDelay, this)
+    }})
+var ChainRxn = new Class({score: 0,game: false,notifierBox: false,notifierTitle: false,notifierButton: false,ballsExpandedEl: false,levelScoreEl: false,totalScoreEl: false,levelNumberEl: false,ballField: false,levels: [[1, 5], [2, 10], [4, 15], [6, 20], [10, 25], [15, 30], [18, 35], [22, 40], [30, 45], [37, 50], [48, 55], [55, 60]],levelNumber: 0,initialize: function() {
+        this.notifierBox = $('notifierBox');
+        this.notifierTitle = $('notifierTitle');
+        this.notifierButton = $('notifierButton');
+        this.ballsExpandedEl = $('ballsExpanded');
+        this.levelScoreEl = $('levelScore');
+        this.totalScoreEl = $('totalScore');
+        this.levelNumberEl = $('levelNumber');
+        this.ballField = $("ballField");
+        this.notifierButton.addEvent("click", function() {
+            this.notifierButton.removeEvents();
+            this.newGame();
+        }.bind(this))
+    },repeatLevel: function() {
+        this.notifierTitle.set("text", "You lose!");
+        this.notifierButton.set("text", "Try Again");
+        this.notifierBox.setStyle("display", "");
+        this.notifierButton.addEvent("click", function() {
+            this.newGame();
+        }.bind(this))
+    },doNextLevel: function(score) {
+        this.levelNumber++;
+        this.score += score;
+        this.notifierTitle.set("text", "You win! Total " + this.score + " points");
+        this.notifierBox.setStyle("display", "");
+        if (this.levelNumber < this.levels.length) {
+            this.notifierButton.set("text", "Play Level " + (this.levelNumber + 1));
+            this.notifierButton.addEvent("click", function() {
+                this.newGame();
+            }.bind(this))
+        } else {
+            this.notifierButton.set("text", "Play Again");
+            this.notifierButton.addEvent("click", function() {
+                window.location = window.location;
+            })
+        }
+    },newGame: function() {
+        this.ballsExpandedEl.empty();
+        this.levelScoreEl.empty();
+        this.totalScoreEl.empty();
+        this.levelNumberEl.empty();
+        this.notifierTitle.set("text", "Get " + this.levels[this.levelNumber][0] + " out of " + this.levels[this.levelNumber][1] + " balls!");
+        this.notifierButton.set('text', "Play!");
+        this.notifierButton.removeEvents();
+        this.notifierButton.addEvent("click", function() {
+            this.notifierBox.setStyle("display", "none");
+            this.notifierButton.removeEvents();
+            this.game = new GameLevel(this.levels[this.levelNumber], this);
+        }.bind(this))
+    }})
+window.addEvent("load", function() {
+    chainrxn = new ChainRxn;
+}.bind(this))
+    </script>
+    <style type="text/css">
+      canvas { border: 1px solid black; }
+    </style>
+  <style type="text/css">.jlhlebbhengjlhmcjebbkambaekglhkf {top: 0px; left: 0px;min-width: 30px;max-width: 300px;font-size: 13px;font-family: arial, helvetica, sans-serif;opacity: .93;padding:0px;position:absolute;display:block;z-index: 999997;font-style: normal;font-variant: normal;font-weight: normal;}#jlhlebbhengjlhmcjebbkambaekglhkf_up{text-align: center;padding:0px;margin: 0px;}#jlhlebbhengjlhmcjebbkambaekglhkf_cont{background-color: #729FCF;font-family: arial, helvetica, sans-serif-webkit-box-shadow: #729FCF 0px 0px 2px;color: #FFFFFF;padding:7px;-webkit-border-radius: 5px;}#jlhlebbhengjlhmcjebbkambaekglhkf_down{text-align: center;padding:0px;margin: 0px;}</style></head>
+  <body>
+    <canvas id="tutorial" width="150" height="150"></canvas>
+		
+<h1>Chain Reaction</h1>
+
+  <h1>Chain Reaction - Advanced</h1>
+	<div id="container">
+		<canvas id="ballField"></canvas>
+		<div id="ballsExpanded"></div>
+    <div id="totalScore"></div>
+    <div id="levelScore"></div>
+    <div id="levelNumber"></div>
+		<div id="notifierBox">
+			<div id="notifierTitle">CAUSE A CHAIN REACTION!</div>
+			<div id="notifierButton">START GAME</div>
+		</div>
+	</div>
+ <div class="supported">See the <a href="http://yvoschaap.com/chainrxn/">simple version</a>? | Supported by <a href="http://www.yvoschaap.com">Yvo Schaap</a> and <a href="http://www.directlyrics.com">lyrics</a>.</div>
+
+  
+
+</body>
+</html>

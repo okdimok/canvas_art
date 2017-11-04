@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <canvas height='600' width='1000' id='cnv'></canvas>
+  <script>
+        var cnv = document.getElementById("cnv");
+        var cx = cnv.getContext('2d');
+        var x = 3.051522, y = 1.582542, z = 15.62388, x1, y1, z1;
+        var dt = 0.0001;
+        var a = 5, b = 15, c = 1;
+        var h = parseInt(cnv.getAttribute("height"));
+        var w = parseInt(cnv.getAttribute("width"));
+        var id = cx.createImageData(w, h);
+        var rd = Math.round;
+        var idx = 0;
+        i=1000000; while (i--) {
+                x1 = x + a*(-x+y)*dt;
+                y1 = y + (b*x-y-z*x)*dt;
+                z1 = z + (-c*z+x*y)*dt;
+                x = x1; y = y1; z = z1;                         
+                idx=4*(rd(19.3*(y - x*0.292893) + 320) + rd(-11*(z + x*0.292893) + 392)*w);
+                id.data[idx+3] = 255;
+        }
+        cx.putImageData(id, 0, 0);
+  </script>
+</body>
+</html>
